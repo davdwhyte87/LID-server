@@ -26,9 +26,10 @@ func main() {
 
 	walletRouter.HandleFunc("/create", controllers.CreateWallet).Methods("POST")
 	walletRouter.HandleFunc("/print", controllers.PrintBlocks).Methods("POST")
-	
+	walletRouter.HandleFunc("/transfer", controllers.TransferLID).Methods("POST")
+
 	port := os.Getenv("PORT")
-	print("Server Running on Port: " + port)
+	print("Server Running on the Port: " + port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatal(err)
 	}

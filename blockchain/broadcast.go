@@ -33,18 +33,53 @@ func BCreateWallet(data models.CreateWallet) {
 		return
 	}
 
-	
 	// shuffedServers := shuffle(servers)
 	x := len(servers)
 	for x > 0 {
 		x = x - 1
 		n := RandomInt(0, len(servers)-1)
 		http.Post(servers[n]+"wallet/create", "application/json", bytes.NewBuffer(requestBody))
-		print("currently on: " +servers[x]+"wallet/create")
+		print("currently on: " + servers[x] + "wallet/create")
 	}
 }
 
-// this function gets the next server in the network
+// BroadCastTransfer ...
+func BroadCastTransfer(data models.TransferReq) {
+
+	print("Broadcasting!!!!!")
+	servers := GetServers()
+	// n := RandomInt(0, len(servers))
+	requestBody, err := json.Marshal(map[string]string{
+		"SenderPrivateKey":        data.SenderPrivateKey,
+		"SenderAddress":           data.SenderAddress,
+		"RecieverAddress":         data.RecieverAddress,
+		"RecieverPrivateKey":      data.RecieverPrivateKey,
+		"Amount":                  data.Amount,
+		"SenderBlockID":           data.SenderBlockID,
+		"RecieverBlockID":         data.RecieverBlockID,
+		"RecieverLastBlockAmount": data.RecieverLastBlockAmount,
+		"SenderLastBlockAmount":   data.SenderLastBlockAmount,
+	})
+
+	if err != nil {
+		print(err.Error())
+		return
+	}
+
+	// shuffedServers := shuffle(servers)
+	x := len(servers)
+	for x > 0 {
+		x = x - 1
+		n := RandomInt(0, len(servers)-1)
+		_, err := http.Post(servers[n]+"wallet/transfer", "application/json", bytes.NewBuffer(requestBody))
+		if err != nil {
+			print(err.Error())
+		}
+		// print("currently on: " + servers[x] + "wallet/create")
+	}
+}
+
+// GetServers ...
 func GetServers() []string {
 	fileName := "server_list.json"
 	file, _ := os.Open(fileName)

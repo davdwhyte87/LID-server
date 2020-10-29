@@ -303,3 +303,16 @@ func VerifyPrivateKey(address string, privateKey string) bool {
 
 // 	return false
 // }
+
+// BlockExists ...
+func BlockExists(address string, ID string) bool {
+	chain := retrieveChain(address)
+
+	for x := range chain {
+		if ID == chain[x].ID {
+			return true
+		}
+	}
+
+	return false
+}

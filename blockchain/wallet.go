@@ -5,15 +5,15 @@ import (
 	"crypto/sha256"
 	"encoding/gob"
 	"encoding/hex"
+	"errors"
 	"log"
 	"os"
 
 	// "os"
 	"strconv"
 
-	"github.com/davdwhyte87/LID-server/blockchain"
+	"github.com/davdwhyte87/LID-server/models"
 	"github.com/davdwhyte87/LID-server/utils"
-	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
@@ -48,12 +48,19 @@ func CreateWallet(name string, privateKey string) (string, error) {
 	block.PrevHash = "00000000000"
 
 	// calculate hash
-	stringForHash := block.PrevHash + strconv.Itoa(block.Amount) + walletName + privateKey
+	stringForHash := block.PrevHash + strconv.Itoa(block.Amount) + walletName
 	shaEngine := sha256.New()
 	shaEngine.Write([]byte(stringForHash))
 
 	block.Hash = hex.EncodeToString(shaEngine.Sum(nil))
-	print(block.Hash)
+
+	// hash supplied private key
+	stringForHashRec := privateKey
+	shaEngine2 := sha256.New()
+	shaEngine2.Write([]byte(stringForHashRec))
+
+	block.PrivateKeyHash = hex.EncodeToString(shaEngine2.Sum(nil))
+
 	err = enc.Encode(block)
 	if err != nil {
 		return retWalletName, err
@@ -66,35 +73,81 @@ func CreateWallet(name string, privateKey string) (string, error) {
 
 }
 
+// func AddTransfer(sender string, reciever string, amount int, sPrivateKey string, rPrivateKey string) (string, string, error) {
+// 	// get senders previous block
+// 	prevBlock := getLastBlock(sender)
+// 	print(prevBlock.Amount)
+// 	// os.Exit(2)
+
+// 	var err error
+// 	var senderBlockID string
+// 	var recieverBlockID string
+// 	//get reciever previous bloick
+// 	prevBlockReciever := getLastBlock(reciever)
+
+// 	// Perform verifications for chains and private keys to confirm identity
+
+// 	// validate sender chain
+// 	vSenChain := VerifyChain(sender)
+// 	if !vSenChain {
+// 		err = errors.New("Error verifying sender")
+// 		return senderBlockID, recieverBlockID, err
+// 	}
+// 	//verify reciever chain()
+// 	vRecChain := VerifyChain(reciever)
+// 	if !vRecChain {
+// 		err = errors.New("Error verifying reciever")
+// 		return senderBlockID, recieverBlockID, err
+// 	}
+
+// 	// verify senders identity with supplied private key
+// 	vPrivateKey := VerifyPrivateKey(sender, sPrivateKey)
+// 	if !vPrivateKey {
+// 		err = errors.New("Error verifying sender private key")
+// 		return senderBlockID, recieverBlockID, err
+// 	}
+
+// 	if prevBlock.Amount < amount {
+// 		log.Fatal("Not enough funds")
+// 		err = errors.New("Not enought funds for transfer")
+// 		return senderBlockID, recieverBlockID, err
+// 	}
+
+// }
+
 // Transfer ...
-func Transfer(sender string, reciever string, amount int, sPrivateKey string, rPrivateKey string) {
+func Transfer(data models.TrxData) (models.TrxData, error) {
 	// get senders previous block
-	prevBlock := getLastBlock(sender)
+	prevBlock := getLastBlock(data.Sender)
 	print(prevBlock.Amount)
 	// os.Exit(2)
-	//get reciever previous bloick
-	prevBlockReciever := getLastBlock(reciever)
 
-	walletPathSender := datapath + sender
-	walletPathReciever := datapath + reciever
+	var err error
+	// var senderBlockID string
+	// var recieverBlockID string
+	//get reciever previous bloick
+	prevBlockReciever := getLastBlock(data.Reciever)
 
 	// Perform verifications for chains and private keys to confirm identity
 
 	// validate sender chain
-	vSenChain := blockchain.VerifyChain(sender)
+	vSenChain := VerifyChain(data.Sender)
 	if !vSenChain {
-		return
+		err = errors.New("Error verifying sender")
+		return data, err
 	}
 	//verify reciever chain()
-	vRecChain := blockchain.VerifyChain(reciever)
+	vRecChain := VerifyChain(data.Reciever)
 	if !vRecChain {
-		return
+		err = errors.New("Error verifying reciever")
+		return data, err
 	}
 
 	// verify senders identity with supplied private key
-	vPrivateKey := blockchain.VerifyPrivateKey(sender, sPrivateKey)
+	vPrivateKey := VerifyPrivateKey(data.Sender, data.SPrivateKey)
 	if !vPrivateKey {
-		return
+		err = errors.New("Error verifying sender private key")
+		return data, err
 	}
 
 	// open wallets
@@ -102,37 +155,42 @@ func Transfer(sender string, reciever string, amount int, sPrivateKey string, rP
 	ops := new(opt.Options)
 	ops.NoSync = false
 
-	dbSender, err := leveldb.OpenFile(walletPathSender, ops)
-	if err != nil {
-		log.Print("db" + err.Error())
-		return
-	}
-
-	dbReciever, err := leveldb.OpenFile(walletPathReciever, ops)
-	if err != nil {
-		log.Print(err.Error())
-		return
-	}
-
 	// take money from the sender
 
 	// check if there is enough money
-	if prevBlock.Amount < amount {
-		log.Fatal("Not enough funds")
-		return
+	if !data.IsBroadcasted {
+		if prevBlock.Amount < data.Amount {
+			err = errors.New("Not enought funds for transfer")
+			return data, err
+		}
 	}
 
 	var dataBuffer bytes.Buffer
 	enc := gob.NewEncoder(&dataBuffer)
 	// var tempBlockHolder []Block
 	var senderBlock Block
-	senderBlock.Amount = prevBlock.Amount - amount
+	if !data.IsBroadcasted {
+		senderBlock.Amount = prevBlock.Amount - data.Amount
+	}
+
+	if data.IsBroadcasted {
+		senderBlock.Amount = data.SenderLastBlockAmount
+	}
+
 	senderBlock.PrevHash = prevBlock.Hash
-	senderBlock.Sender = sender
-	senderBlock.Reciever = reciever
+	senderBlock.Sender = data.Sender
+	senderBlock.Reciever = data.Reciever
+	senderBlock.PrivateKeyHash = prevBlock.PrivateKeyHash
+	if !data.IsBroadcasted {
+		senderBlock.ID = utils.StringWithCharset(12)
+	}
+
+	if data.IsBroadcasted {
+		senderBlock.ID = data.SenderBlockID
+	}
 
 	// calculate hash
-	stringForHash := senderBlock.PrevHash + strconv.Itoa(senderBlock.Amount) + sender + sPrivateKey
+	stringForHash := senderBlock.PrevHash + strconv.Itoa(senderBlock.Amount) + data.Sender
 	shaEngine := sha256.New()
 	shaEngine.Write([]byte(stringForHash))
 
@@ -144,50 +202,69 @@ func Transfer(sender string, reciever string, amount int, sPrivateKey string, rP
 	// print(block.Hash)
 	errenc := enc.Encode(senderBlock)
 	if errenc != nil {
+		err = errenc
 		log.Fatal(errenc)
+		return data, err
 	}
 	// check(errenc)
 
 	// get transaction id
-	transID := utils.StringWithCharset(24)
+	// transID := utils.StringWithCharset(24)
 
-	err = dbSender.Put([]byte(transID), dataBuffer.Bytes(), nil)
-	saveBlock(sender, senderBlock)
+	err = saveBlock(data.Sender, senderBlock)
 	check(err)
-	dbSender.Close()
 
 	// credit reciever
 
 	var recieverBlock Block
-	recieverBlock.Amount = prevBlockReciever.Amount + amount
+	if !data.IsBroadcasted {
+		recieverBlock.Amount = prevBlockReciever.Amount + data.Amount
+	}
+	if data.IsBroadcasted {
+		recieverBlock.Amount = data.RecieverLastBlockAmount
+	}
 	recieverBlock.PrevHash = prevBlockReciever.Hash
-	recieverBlock.Sender = sender
-	recieverBlock.Reciever = reciever
+	recieverBlock.Sender = data.Sender
+	recieverBlock.Reciever = data.Reciever
+	recieverBlock.PrivateKeyHash = prevBlockReciever.PrivateKeyHash
+
+	if !data.IsBroadcasted {
+		recieverBlock.ID = utils.StringWithCharset(12)
+	}
+
+	if data.IsBroadcasted {
+		recieverBlock.ID = data.RecieverBlockID
+	}
 
 	// calculate hash
-	stringForHashRec := recieverBlock.PrevHash + strconv.Itoa(recieverBlock.Amount) + reciever + rPrivateKey
+	stringForHashRec := recieverBlock.PrevHash + strconv.Itoa(recieverBlock.Amount) + data.Reciever
 	shaEngineRe := sha256.New()
 	shaEngineRe.Write([]byte(stringForHashRec))
 
 	recieverBlock.Hash = hex.EncodeToString(shaEngineRe.Sum(nil))
 
-	print("reciever amt")
 	print(recieverBlock.Amount)
 	var recBlockDataBuffer bytes.Buffer
 	encDataRec := gob.NewEncoder(&recBlockDataBuffer)
 	errencRec := encDataRec.Encode(recieverBlock)
+	if errencRec != nil {
+		err = errencRec
+		return data, err
+	}
 	check(errencRec)
 
 	// get transID
-	transIDRec := utils.StringWithCharset(12)
+	// transIDRec := utils.StringWithCharset(12)
 
 	// save on disk
 
-	err = dbReciever.Put([]byte(transIDRec), recBlockDataBuffer.Bytes(), nil)
-	saveBlock(reciever, recieverBlock)
+	err = saveBlock(data.Reciever, recieverBlock)
 	check(err)
-	dbReciever.Close()
-
+	data.RecieverBlockID = recieverBlock.ID
+	data.SenderBlockID = senderBlock.ID
+	data.RecieverLastBlockAmount = recieverBlock.Amount
+	data.SenderLastBlockAmount = senderBlock.Amount
+	return data, err
 }
 
 // GetBalance ...

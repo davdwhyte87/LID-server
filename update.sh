@@ -1,0 +1,5 @@
+cp LID-server "../LID test servers/server1"
+cp LID-server "../LID test servers/server2"
+cp LID-server "../LID test servers/server4"
+cp LID-server "../LID test servers/server5"
+cp LID-server "../LID test servers/server6"
