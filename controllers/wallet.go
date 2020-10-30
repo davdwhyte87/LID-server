@@ -86,6 +86,7 @@ func TransferLID(w http.ResponseWriter, r *http.Request) {
 
 	// check if req is coming from user or server
 	if reqData.RecieverBlockID != "" {
+		// check if block exists
 		if blockchain.BlockExists(reqData.RecieverAddress, reqData.RecieverBlockID) {
 			utils.RespondWithError(w, http.StatusCreated, "RecieverBlock does not exist")
 			return
@@ -117,6 +118,8 @@ func TransferLID(w http.ResponseWriter, r *http.Request) {
 		print("   .     ")
 		data.RecieverLastBlockAmount, _ = strconv.Atoi(reqData.RecieverLastBlockAmount)
 	}
+
+	// make trnasfer
 	newData, errTransfer := blockchain.Transfer(data)
 
 	if errTransfer != nil {

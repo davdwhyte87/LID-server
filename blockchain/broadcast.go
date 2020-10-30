@@ -67,7 +67,7 @@ func BroadCastTransfer(data models.TransferReq) {
 	}
 
 	// shuffedServers := shuffle(servers)
-	x := len(servers)
+	x := 3
 	for x > 0 {
 		x = x - 1
 		n := RandomInt(0, len(servers)-1)
