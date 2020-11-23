@@ -7,6 +7,7 @@ import (
 
 	// "github.com/davdwhyte87/LID-server/blockchain"
 	"github.com/davdwhyte87/LID-server/controllers"
+	"github.com/davdwhyte87/LID-server/utils"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
@@ -17,7 +18,7 @@ func init() {
 	}
 }
 func main() {
-
+	utils.Pay()
 	// blockchain.BCreateWallet()
 	r := mux.NewRouter()
 
