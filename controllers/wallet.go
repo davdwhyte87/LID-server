@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -140,4 +142,43 @@ func TransferLID(w http.ResponseWriter, r *http.Request) {
 	blockchain.BroadCastTransfer(reqData)
 	return
 
+}
+
+// UserGetBalance ...
+// this function gets the balance from the server and requests balance data from
+// other servers. It then compares the balance, making a concensus to determin a legitimate figure
+func UserGetBalance(w http.ResponseWriter, r *http.Request) {
+	var reqData models.GetBalanceReq
+	err := utils.DecodeReq(r, &reqData)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "Cannot decode on server")
+		return
+	}
+
+	// primaryBalance := blockchain.GetBalance(reqData.Address)
+
+	// make requests to other servers
+
+	servers := blockchain.GetServers()
+	requestBody, errDe := json.Marshal(map[string]string{
+		"Address":        reqData.Address,
+	
+	})
+
+	if errDe != nil {
+		print(errDe.Error())
+		return
+	}
+
+	// shuffedServers := shuffle(servers)
+	x := 3
+	for x > 0 {
+		x = x - 1
+		n := utils.RandomInt(0, len(servers)-1)
+		_, err := http.Post(servers[n]+"wallet/transfer", "application/json", bytes.NewBuffer(requestBody))
+		if err != nil {
+			print(err.Error())
+		}
+		// print("currently on: " + servers[x] + "wallet/create")
+	}
 }

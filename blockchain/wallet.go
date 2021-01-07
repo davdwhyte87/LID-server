@@ -268,11 +268,12 @@ func Transfer(data models.TrxData) (models.TrxData, error) {
 }
 
 // GetBalance ...
-func GetBalance(address string) {
+func GetBalance(address string) int {
 	block := getLastBlock(address)
 	log.Print(block.Amount)
 	log.Print("...........")
 	log.Print(address)
+	return block.Amount
 }
 
 // WalletExists ... Check if a wallet exists on a single server

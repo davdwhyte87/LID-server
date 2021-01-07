@@ -47,3 +47,12 @@ func StringWithCharset(length int) string {
 	}
 	return string(b)
 }
+
+
+// RandomInt ...
+func RandomInt(min int, max int) int {
+	rand.Seed(time.Now().Unix())
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	p := r.Perm(max - min + 1)
+	return p[min]
+}
