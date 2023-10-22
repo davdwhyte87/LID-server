@@ -1,8 +1,7 @@
-# LID-server
+# Lead_blockchain
 
-Lid is a digital currency that allows fast payment to anywhere in the world. It is a cryptocurrency that focuses on facilitating trade, and giving equal 
-opportunity to everyone. We believe money is a right and it is as impoortant as food foor survival. Lid uses a distributed ledger system to manage transactions
-and issue money.
+The internet needs a way to assign value and transfer this value. This blockchain helps us store that value. How do we pay a blogger $0.0001 as a thank-you token after reading a blog post? 
+How do we buy and sell things in a borderless manner? 
 
 # License
 
