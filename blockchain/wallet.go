@@ -2,7 +2,14 @@ package blockchain
 
 import (
 	"bytes"
+	"crypto/elliptic"
+	"crypto/rand"
+	"strings"
+
+	// "crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
+	"encoding/binary"
 	"encoding/gob"
 	"encoding/hex"
 	"errors"
@@ -10,68 +17,113 @@ import (
 	"os"
 
 	// "os"
+	"crypto/ecdsa"
+	"crypto/x509"
+	"encoding/pem"
+	"math/big"
+	mrand "math/rand"
 	"strconv"
 
 	"github.com/davdwhyte87/LID-server/models"
 	"github.com/davdwhyte87/LID-server/utils"
 	"github.com/syndtr/goleveldb/leveldb/opt"
+	"gonum.org/v1/gonum/mathext/prng"
 )
 
 var datapath = "./temp/"
 
 // CreateWallet ...
-func CreateWallet(name string, privateKey string) (string, error) {
+func CreateWallet(name string, passPhrase string) (string, string, error) {
 	var err error
-	var retWalletName string
-	var walletName string
-	if name != "" {
-		if WalletExists(name) {
-			print("wallet existss/......")
-			return name, err
-		}
-	}
+	// generate seed 
+	slice := []byte(passPhrase)
+	tt := binary.LittleEndian.Uint64(slice)
+	prng.NewMT19937().Seed(tt)
+	seed := int64(tt)
+	var myRand = mrand.New(mrand.NewSource(seed))
 
-	log.Print("Createing Wallet ....... ")
-	walletName = name
-	if name == "" {
-		walletName = utils.StringWithCharset(12)
-	}
-	retWalletName = walletName
-	// initail block
-
-	var dataBuffer bytes.Buffer
-	enc := gob.NewEncoder(&dataBuffer)
-	var block Block
-	block.Amount = 10
-	block.Sender = "00000000000"
-	block.Reciever = walletName
-	block.PrevHash = "00000000000"
-
-	// calculate hash
-	stringForHash := block.PrevHash + strconv.Itoa(block.Amount) + walletName
-	shaEngine := sha256.New()
-	shaEngine.Write([]byte(stringForHash))
-
-	block.Hash = hex.EncodeToString(shaEngine.Sum(nil))
-
-	// hash supplied private key
-	stringForHashRec := privateKey
-	shaEngine2 := sha256.New()
-	shaEngine2.Write([]byte(stringForHashRec))
-
-	block.PrivateKeyHash = hex.EncodeToString(shaEngine2.Sum(nil))
-
-	err = enc.Encode(block)
+	// generate key with seeded rand reader
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), myRand)
 	if err != nil {
-		return retWalletName, err
+		panic(err)
 	}
-	// save hash in database
-	// err = db.Put([]byte(generateTransID()), dataBuffer.Bytes(), nil)
-	err = saveBlock(walletName, block)
+	encPriv, encPub := encode(privateKey, &privateKey.PublicKey)
 
-	return retWalletName, err
-
+	return encPriv, encPub, err
 }
+
+func encode(privateKey *ecdsa.PrivateKey, publicKey *ecdsa.PublicKey) (string, string) {
+	x509Encoded, _ := x509.MarshalECPrivateKey(privateKey)
+	pemEncoded := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: x509Encoded})
+
+	x509EncodedPub, _ := x509.MarshalPKIXPublicKey(publicKey)
+	pemEncodedPub := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: x509EncodedPub})
+
+	return string(pemEncoded), string(pemEncodedPub)
+}
+func decodePrivateKey(key string) *ecdsa.PrivateKey {
+	block, _ := pem.Decode([]byte(key))
+	x509Encoded := block.Bytes
+	privateKey, _ := x509.ParseECPrivateKey(x509Encoded)
+	return privateKey
+}
+
+func decodePublicKey(key string) *ecdsa.PublicKey {
+	blockPub, _ := pem.Decode([]byte(key))
+	x509EncodedPub := blockPub.Bytes
+	genericPublicKey, _ := x509.ParsePKIXPublicKey(x509EncodedPub)
+	publicKey := genericPublicKey.(*ecdsa.PublicKey)
+	return publicKey
+}
+
+func signMessage(pkey string, message string) string {
+	// convert string to key
+	privateKey := decodePrivateKey(pkey)
+
+	// hist data
+
+	signhash := sha256.New().Sum([]byte(message))
+	r, s, err := ecdsa.Sign(rand.Reader, privateKey, signhash)
+	//signature := r.Bytes()
+	//signature = append(signature, s.Bytes()...)
+	if err != nil {
+		print(err.Error())
+		return ""
+	}
+	newSign := r.String() + "," + s.String()
+	newSign = base64.StdEncoding.EncodeToString([]byte(newSign))
+	// hex := base64.StdEncoding.EncodeToString(signature)
+	//print(r.String())
+	return newSign
+}
+
+func verifyMessage(pKey string, signHashString string, message string) bool{
+	//get puvlic key
+	publicKey := decodePublicKey(pKey)
+	data, err := base64.StdEncoding.DecodeString(signHashString)
+	if err != nil {
+		print(err.Error())
+	}
+	signString := string(data[:])
+	signStringSlice := strings.Split(signString, ",")
+
+	print()
+	hash := sha256.New().Sum([]byte(message))
+	r := new(big.Int)
+	r.SetString(signStringSlice[0], 10)
+	s := new(big.Int)
+	s.SetString(signStringSlice[1], 10)
+	verified := ecdsa.Verify(publicKey, hash, r, s)
+
+	if verified {
+		print("YEsss ! it is ok")
+		return true
+	} else {
+		print("No not verified")
+		return false
+	}
+}
+
 
 // func AddTransfer(sender string, reciever string, amount int, sPrivateKey string, rPrivateKey string) (string, string, error) {
 // 	// get senders previous block
@@ -286,3 +338,5 @@ func WalletExists(address string) bool {
 	// print(errstat.Error())
 	return true
 }
+
+

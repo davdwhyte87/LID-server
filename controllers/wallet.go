@@ -9,8 +9,13 @@ import (
 	"github.com/davdwhyte87/LID-server/utils"
 )
 
+
+type WalletController struct {
+
+}
+
 // CreateWallet ...
-func CreateWallet(w http.ResponseWriter, r *http.Request) {
+func  CreateWallet(w http.ResponseWriter, r *http.Request) {
 	var reqData models.CreateWallet
 	err := utils.DecodeReq(r, &reqData)
 	if err != nil {
