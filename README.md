@@ -1,7 +1,9 @@
-# Lead_blockchain
+# Kura Coin
 
 The internet needs a way to assign value and transfer this value. This blockchain helps us store that value. How do we pay a blogger $0.0001 as a thank-you token after reading a blog post?
 How do we buy and sell things in a borderless manner?
+
+Only 81 million coins exist and will ever exist. Miners are welcome to mine, we are using a proof of stake mechanism, where everyone is treated equially. All miners get paid for each transaction. 
 
 # License
 
@@ -9,7 +11,6 @@ How do we buy and sell things in a borderless manner?
 
 Everyone is welcome to contribute, the *master* branch has the latest code. There will be version branches, for exaple V1, V2, v3.
 Developers who frequently contribute to the software will recieve tokens from the netwoork as theyy have iinvested their time and energy into building the system.
-
 
 # V1.0 Features
 

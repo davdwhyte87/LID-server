@@ -1,11 +1,14 @@
 package utils
 
 import (
-	"net/http"
 	"encoding/json"
+	"net"
+	"net/http"
+
+	"github.com/davdwhyte87/LID-server/models"
 )
 
-// ReturnData ... 
+// ReturnData ...
 type ReturnData struct {
 	Status int
 	Data []interface{}
@@ -30,4 +33,16 @@ func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.WriteHeader(code)
 	w.Write(response)
 	return
+}
+
+
+func RespondTCP(data interface{}, conn net.Conn){
+
+	responseByte, err := json.Marshal(data)
+	if err != nil {
+		println(err.Error())
+		conn.Write([]byte(err.Error()))
+		return
+	}
+	conn.Write(responseByte)
 }
