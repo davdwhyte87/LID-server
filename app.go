@@ -8,12 +8,15 @@ import (
 	// "net/http"
 	"os"
 
-	// "github.com/davdwhyte87/LID-server/blockchain"
-	// "github.com/davdwhyte87/LID-server/controllers"
-	// "github.com/davdwhyte87/LID-server/utils"
+	// "kura_coin/blockchain"
+	// "kura_coin/controllers"
+	// "kura_coin/utils"
 	// "github.com/gorilla/mux"
-	"github.com/davdwhyte87/LID-server/blockchain"
-	"github.com/davdwhyte87/LID-server/handlers"
+	"kura_coin/blockchain"
+	"kura_coin/handlers"
+
+	//"kura_coin/models"
+	"kura_coin/utils"
 	"github.com/joho/godotenv"
 )
 
@@ -24,6 +27,7 @@ func init() {
 }
 
 func handleClient(conn net.Conn) {
+	utils.Logger.Debug().Msg("New request")
 	defer conn.Close()
 
 	// Create a buffer to read data into
@@ -32,6 +36,7 @@ func handleClient(conn net.Conn) {
 	// Read data from the client
 	n, err := conn.Read(buffer)
 	if err != nil {
+		utils.Logger.Error().Str("err", err.Error()).Msg("Error reading net data")
 		println("Error:", err.Error())
 		return
 	}
@@ -48,23 +53,40 @@ func handleClient(conn net.Conn) {
 	// }
 
 	datapit := strings.Split(message, "\n")
-	routeTCPActions(datapit[0], datapit[len(datapit)-1], conn)
 
+	// utils.Logger.Debug().Str("length",string(rune(len(datapit))))
+	// if len(datapit) != 3 {
+	// 	response := models.ErrorResponse{}
+	// 	response.Code = 0
+	// 	response.Message = "Invalid request structure for protocol"
+
+	// 	utils.RespondTCP(response, conn)
+	// 	return
+	// }
+	routeTCPActions(datapit[0], datapit[len(datapit)-1], conn)
+	// messageSignature := datapit[1]
+	// senderPublicKey := datapit[2]
+	// if !blockchain.VerifyMessage(senderPublicKey, messageSignature, datapit[len(datapit)-1]) {
+	// 	println("Error with verifyin message ")
+	// }
 }
 
 func routeTCPActions(action string, message string, conn net.Conn) {
 
 	switch action {
 	case "CreateWallet":
-		println("Lots loose ........")
+		utils.Logger.Debug().Msg("creating wallet req")
 		handlers.CreateWallet(message, conn)
-	case "GetWallet":
-
+	case "GetBalance":
+		utils.Logger.Debug().Msg("getting balance req")
+		handlers.GetBalance(message, conn)
 	}
 }
 
 func main() {
 	//utils.Pay()
+	// initialize logger
+	utils.InitLogger()
 	prk1, pk1, _ := blockchain.CreateWallet("oasis34", "onome do that tin")
 	prk2, pk2, _ := blockchain.CreateWallet("oasis34", "onome do that tin")
 

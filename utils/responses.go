@@ -5,7 +5,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/davdwhyte87/LID-server/models"
+	// "kura_coin/models"
 )
 
 // ReturnData ...
@@ -45,4 +45,5 @@ func RespondTCP(data interface{}, conn net.Conn){
 		return
 	}
 	conn.Write(responseByte)
+	
 }

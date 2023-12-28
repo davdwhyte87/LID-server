@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/davdwhyte87/LID-server/blockchain"
-	"github.com/davdwhyte87/LID-server/models"
-	"github.com/davdwhyte87/LID-server/utils"
+	"kura_coin/blockchain"
+	"kura_coin/models"
+	"kura_coin/utils"
 )
 
 

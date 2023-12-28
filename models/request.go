@@ -7,8 +7,10 @@ type Request struct {
 }
 
 type CreateWalletRequest struct {
-	
 	WalletName string
 	PassPhrase string
-	
+}
+
+type GetBalanceReq struct {
+	WalletName string
 }

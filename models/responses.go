@@ -9,3 +9,8 @@ type ErrorResponse struct {
 	Code    int
 	Message string
 }
+
+type GetBalanceResp struct {
+	Code    int
+	Balance int64
+}

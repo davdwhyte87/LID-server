@@ -9,7 +9,10 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
+	// "kura_coin/utils"
+	"kura_coin/utils"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -30,15 +33,23 @@ func saveBlock(address string, block Block) error {
 	walletPath := walletDataPath + address
 	_, errstat := os.Stat(walletPath)
 	err = errstat
-	print(walletPath)
+	utils.Logger.Debug().Msg(walletPath)
 	if os.IsNotExist(errstat) {
 		errDir := os.MkdirAll(walletPath, 0755)
 		err = errDir
 		if errDir != nil {
+			utils.Logger.Error().Msg("Error creating wallet dir")
 			log.Print("Error creating temp dir")
 			return err
 		}
 
+		// add wallet data if its a new wallet
+		err = addWalletData(address)
+		if err  != nil {
+			utils.Logger.Error().Str("err",err.Error()).Msg("error adding wallet data")
+			return err
+		}
+		
 		var chain []Block
 		var dataBuffer bytes.Buffer
 		enc := gob.NewEncoder(&dataBuffer)
@@ -46,11 +57,13 @@ func saveBlock(address string, block Block) error {
 		errenc := enc.Encode(chain)
 		err = errenc
 		if errenc != nil {
+			utils.Logger.Error().Str("err",errenc.Error()).Msg("error encoding chain data")
 			return err
 		}
 		errWr := ioutil.WriteFile(walletPath+"/chain.bin", dataBuffer.Bytes(), 0700)
 		err = errWr
 		if errWr != nil {
+			utils.Logger.Error().Str("err",errWr.Error()).Msg("error writing chain data")
 			return err
 		}
 	} else {
@@ -69,6 +82,7 @@ func saveBlock(address string, block Block) error {
 		errWr := ioutil.WriteFile(walletPath+"/chain.bin", dataBuffer.Bytes(), 0700)
 		err = errWr
 		if errWr != nil {
+			utils.Logger.Error().Str("err",errWr.Error()).Msg("error writing chain data")
 			return err
 		}
 	}
@@ -77,26 +91,58 @@ func saveBlock(address string, block Block) error {
 	return err
 }
 
-func retrieveChain(address string) []Block {
+func addWalletData(address string) error {
+	var err error
 	walletPath := walletDataPath + address
-	_, err := os.Stat(walletPath)
-
-	// print(walletPath)
-	if os.IsNotExist(err) {
+	_, errstat := os.Stat(walletPath)
+	err = errstat
+	print(walletPath)
+	if os.IsNotExist(errstat) {
 		errDir := os.MkdirAll(walletPath, 0755)
+		err = errDir
 		if errDir != nil {
+			utils.Logger.Error().Msg("error creating wallet.bin")
 			log.Print("Error creating temp dir")
+			return err
 		}
+
+		
+		var dataBuffer bytes.Buffer
+		enc := gob.NewEncoder(&dataBuffer)
+		wallet := Wallet{}
+		wallet.Address = address
+		wallet.CreatedAt = time.Now().String()
+		errenc := enc.Encode(wallet)
+		err = errenc
+		if errenc != nil {
+			utils.Logger.Error().Str("err",errenc.Error()).Msg("error encoding wallet data")
+			return err
+		}
+		errWr := ioutil.WriteFile(walletPath+"/wallet.bin", dataBuffer.Bytes(), 0700)
+		err = errWr
+		if errWr != nil {
+			utils.Logger.Error().Str("err",errWr.Error()).Msg("error writing to file for wallet")
+			return err
+		}
+	} else {
+	
 	}
-	var chain []Block
-	// var block Block
+	return err
+}
 
-	dataByte, errWr := ioutil.ReadFile(walletPath + "/chain.bin")
-	dec := gob.NewDecoder(bytes.NewBuffer(dataByte))
-	errdec := dec.Decode(&chain)
-	check(errWr)
-	check(errdec)
 
+func GetChain(address string) []Block{
+	return retrieveChain(address)
+}
+
+func retrieveChain(address string) []Block {
+
+	db := NewKvStore[[]Block](address, "chain.bin")
+	chain, err :=db.GetData()
+	if err != nil {
+		utils.Logger.Error().Str("err", err.Error()).Msg("error getting data")
+		return nil
+	}
 	return chain
 }
 

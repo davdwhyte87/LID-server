@@ -5,6 +5,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"strings"
+	"time"
 
 	// "crypto/rand"
 	"crypto/sha256"
@@ -24,18 +25,24 @@ import (
 	mrand "math/rand"
 	"strconv"
 
-	"github.com/davdwhyte87/LID-server/models"
-	"github.com/davdwhyte87/LID-server/utils"
+	"kura_coin/models"
+	"kura_coin/utils"
+
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"gonum.org/v1/gonum/mathext/prng"
 )
 
 var datapath = "./temp/"
 
+type Wallet struct {
+	Address   string
+	CreatedAt string
+}
+
 // CreateWallet ...
 func CreateWallet(name string, passPhrase string) (string, string, error) {
 	var err error
-	// generate seed 
+	// generate seed
 	slice := []byte(passPhrase)
 	tt := binary.LittleEndian.Uint64(slice)
 	prng.NewMT19937().Seed(tt)
@@ -45,10 +52,56 @@ func CreateWallet(name string, passPhrase string) (string, string, error) {
 	// generate key with seeded rand reader
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), myRand)
 	if err != nil {
+		utils.Logger.Error().Str("err", err.Error()).Msg("error generating ecdsa keys")
 		panic(err)
 	}
 	encPriv, encPub := encode(privateKey, &privateKey.PublicKey)
 
+	// create database
+	db := NewKvStore[any](name, "")
+	createDbError := db.CreateDb()
+	if createDbError != nil {
+		utils.Logger.Error().Str("err", createDbError.Error()).Msg("error creating database")
+		return "", "", createDbError
+	}
+	// create new block
+	var block Block
+	block.Amount = 10
+	block.Sender = "00000000000"
+	block.Reciever = name
+	block.PrevHash = "00000000000"
+
+	// calculate hash
+	stringForHash := block.PrevHash + strconv.Itoa(block.Amount) + encPub
+	shaEngine := sha256.New()
+	shaEngine.Write([]byte(stringForHash))
+	block.Hash = hex.EncodeToString(shaEngine.Sum(nil))
+
+	// create wallet data
+	store := NewKvStore[Wallet](name, "wallet.bin")
+	wallet := Wallet{}
+	wallet.Address = name
+	wallet.CreatedAt = time.Now().GoString()
+	svErr := store.SaveData(wallet)
+	if svErr != nil {
+		utils.Logger.Error().Str("err", svErr.Error()).Msg("error saving data")
+		return "", "", svErr
+	}
+
+	// create block
+	var chain []Block
+	var dataBuffer bytes.Buffer
+	enc := gob.NewEncoder(&dataBuffer)
+	chain = append(chain, block)
+	errenc := enc.Encode(chain)
+	err = errenc
+	if errenc != nil {
+		utils.Logger.Error().Str("err", errenc.Error()).Msg("error encoding chain data")
+		return "", "", err
+	}
+	// err = saveBlock(name, block)
+	storeb := NewKvStore[[]Block](name, "chain.bin")
+	err = storeb.SaveData(chain)
 	return encPriv, encPub, err
 }
 
@@ -76,7 +129,7 @@ func decodePublicKey(key string) *ecdsa.PublicKey {
 	return publicKey
 }
 
-func signMessage(pkey string, message string) string {
+func SignMessage(pkey string, message string) string {
 	// convert string to key
 	privateKey := decodePrivateKey(pkey)
 
@@ -97,7 +150,7 @@ func signMessage(pkey string, message string) string {
 	return newSign
 }
 
-func verifyMessage(pKey string, signHashString string, message string) bool{
+func VerifyMessage(pKey string, signHashString string, message string) bool {
 	//get puvlic key
 	publicKey := decodePublicKey(pKey)
 	data, err := base64.StdEncoding.DecodeString(signHashString)
@@ -123,7 +176,6 @@ func verifyMessage(pKey string, signHashString string, message string) bool{
 		return false
 	}
 }
-
 
 // func AddTransfer(sender string, reciever string, amount int, sPrivateKey string, rPrivateKey string) (string, string, error) {
 // 	// get senders previous block
@@ -183,17 +235,17 @@ func Transfer(data models.TrxData) (models.TrxData, error) {
 	// Perform verifications for chains and private keys to confirm identity
 
 	// validate sender chain
-	vSenChain := VerifyChain(data.Sender)
-	if !vSenChain {
-		err = errors.New("Error verifying sender")
-		return data, err
-	}
+	// vSenChain := VerifyChain(data.Sender)
+	// if !vSenChain {
+	// 	err = errors.New("Error verifying sender")
+	// 	return data, err
+	// }
 	//verify reciever chain()
-	vRecChain := VerifyChain(data.Reciever)
-	if !vRecChain {
-		err = errors.New("Error verifying reciever")
-		return data, err
-	}
+	// vRecChain := VerifyChain(data.Reciever)
+	// if !vRecChain {
+	// 	err = errors.New("Error verifying reciever")
+	// 	return data, err
+	// }
 
 	// verify senders identity with supplied private key
 	vPrivateKey := VerifyPrivateKey(data.Sender, data.SPrivateKey)
@@ -338,5 +390,3 @@ func WalletExists(address string) bool {
 	// print(errstat.Error())
 	return true
 }
-
-

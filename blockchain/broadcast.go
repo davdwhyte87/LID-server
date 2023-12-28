@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/davdwhyte87/LID-server/models"
-	// "github.com/davdwhyte87/LID-server/models"
+	"kura_coin/models"
+	// "kura_coin/models"
 )
 
 // This set of code handles broadcasting requests from this server to other servers

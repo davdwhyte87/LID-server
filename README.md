@@ -3,7 +3,7 @@
 The internet needs a way to assign value and transfer this value. This blockchain helps us store that value. How do we pay a blogger $0.0001 as a thank-you token after reading a blog post?
 How do we buy and sell things in a borderless manner?
 
-Only 81 million coins exist and will ever exist. Miners are welcome to mine, we are using a proof of stake mechanism, where everyone is treated equially. All miners get paid for each transaction. 
+Only 99.9 trillion coins exist and will ever exist. Miners are welcome to mine, we are using a proof of stake mechanism, where everyone is treated equially. All miners get paid for each transaction.
 
 # License
 
@@ -23,3 +23,18 @@ Developers who frequently contribute to the software will recieve tokens from th
 
 There are two types of tests that we run, they are manual testing and automated testing. Develoopers can checkout latest builds and spawn various servers,
 and make requests too them. Developers can also wriite tests and push them as prooposals too the Lid development team.
+
+# Kuracoin Protocol Format
+
+Request Action \n
+
+Message Signature \n
+
+SenderPublicKey \n
+
+Message (should always be the last thing in the text)
+
+
+Response codes
+
+0 - error
