@@ -13,7 +13,7 @@ import (
 	"encoding/binary"
 	"encoding/gob"
 	"encoding/hex"
-	"errors"
+
 	"log"
 	"os"
 
@@ -23,7 +23,6 @@ import (
 	"encoding/pem"
 	"math/big"
 	mrand "math/rand"
-	"strconv"
 
 	"kura_coin/models"
 	"kura_coin/utils"
@@ -66,13 +65,13 @@ func CreateWallet(name string, passPhrase string) (string, string, error) {
 	}
 	// create new block
 	var block Block
-	block.Amount = 10
+	block.Amount = 900
 	block.Sender = "00000000000"
 	block.Reciever = name
 	block.PrevHash = "00000000000"
 
 	// calculate hash
-	stringForHash := block.PrevHash + strconv.Itoa(block.Amount) + encPub
+	stringForHash := block.PrevHash + encPub
 	shaEngine := sha256.New()
 	shaEngine.Write([]byte(stringForHash))
 	block.Hash = hex.EncodeToString(shaEngine.Sum(nil))
@@ -222,153 +221,69 @@ func VerifyMessage(pKey string, signHashString string, message string) bool {
 // Transfer ...
 func Transfer(data models.TrxData) (models.TrxData, error) {
 	// get senders previous block
-	prevBlock := getLastBlock(data.Sender)
-	print(prevBlock.Amount)
-	// os.Exit(2)
-
-	var err error
-	// var senderBlockID string
-	// var recieverBlockID string
-	//get reciever previous bloick
-	prevBlockReciever := getLastBlock(data.Reciever)
 
 	// Perform verifications for chains and private keys to confirm identity
-
-	// validate sender chain
-	// vSenChain := VerifyChain(data.Sender)
-	// if !vSenChain {
-	// 	err = errors.New("Error verifying sender")
-	// 	return data, err
-	// }
-	//verify reciever chain()
-	// vRecChain := VerifyChain(data.Reciever)
-	// if !vRecChain {
-	// 	err = errors.New("Error verifying reciever")
-	// 	return data, err
-	// }
-
-	// verify senders identity with supplied private key
-	vPrivateKey := VerifyPrivateKey(data.Sender, data.SPrivateKey)
-	if !vPrivateKey {
-		err = errors.New("Error verifying sender private key")
-		return data, err
-	}
 
 	// open wallets
 
 	ops := new(opt.Options)
 	ops.NoSync = false
 
-	// take money from the sender
-
-	// check if there is enough money
-	if !data.IsBroadcasted {
-		if prevBlock.Amount < data.Amount {
-			err = errors.New("Not enought funds for transfer")
-			return data, err
-		}
-	}
-
-	var dataBuffer bytes.Buffer
-	enc := gob.NewEncoder(&dataBuffer)
-	// var tempBlockHolder []Block
-	var senderBlock Block
-	if !data.IsBroadcasted {
-		senderBlock.Amount = prevBlock.Amount - data.Amount
-	}
-
-	if data.IsBroadcasted {
-		senderBlock.Amount = data.SenderLastBlockAmount
-	}
-
-	senderBlock.PrevHash = prevBlock.Hash
+	// create new sender block
+	senderBlock := Block{}
+	senderBlock.Amount = -data.Amount
 	senderBlock.Sender = data.Sender
 	senderBlock.Reciever = data.Reciever
-	senderBlock.PrivateKeyHash = prevBlock.PrivateKeyHash
-	if !data.IsBroadcasted {
-		senderBlock.ID = utils.StringWithCharset(12)
+	senderBlock.ID = ""
+
+	// create new receiver block
+	receiverBlock := Block{}
+	receiverBlock.Amount = data.Amount
+	receiverBlock.Sender = data.Sender
+	receiverBlock.Reciever = data.Reciever
+	receiverBlock.ID = ""
+
+	// save sender block
+
+	senderStore := NewKvStore[[]Block](data.Sender, "chain.bin")
+	senderChain, gdErr := senderStore.GetData()
+	if gdErr != nil {
+		utils.Logger.Error().Str("err", gdErr.Error()).Msg("Error getting sender chain")
+		return data, gdErr
 	}
 
-	if data.IsBroadcasted {
-		senderBlock.ID = data.SenderBlockID
+	receiverStore := NewKvStore[[]Block](data.Reciever, "chain.bin")
+	receiverChain, rcErr := receiverStore.GetData()
+	if rcErr != nil {
+		utils.Logger.Error().Str("err", rcErr.Error()).Msg("Error getting sender chain")
+		return data, rcErr
 	}
 
-	// calculate hash
-	stringForHash := senderBlock.PrevHash + strconv.Itoa(senderBlock.Amount) + data.Sender
-	shaEngine := sha256.New()
-	shaEngine.Write([]byte(stringForHash))
-
-	senderBlock.Hash = hex.EncodeToString(shaEngine.Sum(nil))
-
-	print(senderBlock.Amount)
-	// add block to temp block holder set
-	// tempBlockHolder = append(tempBlockHolder, senderBlock)
-	// print(block.Hash)
-	errenc := enc.Encode(senderBlock)
-	if errenc != nil {
-		err = errenc
-		log.Fatal(errenc)
-		return data, err
-	}
-	// check(errenc)
-
-	// get transaction id
-	// transID := utils.StringWithCharset(24)
-
-	err = saveBlock(data.Sender, senderBlock)
-	check(err)
-
-	// credit reciever
-
-	var recieverBlock Block
-	if !data.IsBroadcasted {
-		recieverBlock.Amount = prevBlockReciever.Amount + data.Amount
-	}
-	if data.IsBroadcasted {
-		recieverBlock.Amount = data.RecieverLastBlockAmount
-	}
-	recieverBlock.PrevHash = prevBlockReciever.Hash
-	recieverBlock.Sender = data.Sender
-	recieverBlock.Reciever = data.Reciever
-	recieverBlock.PrivateKeyHash = prevBlockReciever.PrivateKeyHash
-
-	if !data.IsBroadcasted {
-		recieverBlock.ID = utils.StringWithCharset(12)
+	senderChain = append(senderChain, senderBlock)
+	receiverChain = append(receiverChain, receiverBlock)
+	ssErr := senderStore.SaveData(senderChain)
+	if ssErr != nil {
+		utils.Logger.Error().Str("err", ssErr.Error()).Msg("Error saving sender block")
+		return data, rcErr
 	}
 
-	if data.IsBroadcasted {
-		recieverBlock.ID = data.RecieverBlockID
+	srErr := receiverStore.SaveData(receiverChain)
+	if srErr != nil {
+		// reverse previous block save  0,1,2,3,4
+		newSenderChain := senderChain[:len(senderChain)-2]
+		ssrErr := senderStore.SaveData(newSenderChain)
+		if ssrErr != nil {
+			utils.Logger.Error().Str("err", ssrErr.Error()).Msg("Error rolling back sender block")
+			return data, ssrErr
+		}
+		utils.Logger.Error().Str("err", srErr.Error()).Msg("Error saving receiver block")
+		return data, rcErr
 	}
 
-	// calculate hash
-	stringForHashRec := recieverBlock.PrevHash + strconv.Itoa(recieverBlock.Amount) + data.Reciever
-	shaEngineRe := sha256.New()
-	shaEngineRe.Write([]byte(stringForHashRec))
+	// broadcast transaction
 
-	recieverBlock.Hash = hex.EncodeToString(shaEngineRe.Sum(nil))
+	return data, nil
 
-	print(recieverBlock.Amount)
-	var recBlockDataBuffer bytes.Buffer
-	encDataRec := gob.NewEncoder(&recBlockDataBuffer)
-	errencRec := encDataRec.Encode(recieverBlock)
-	if errencRec != nil {
-		err = errencRec
-		return data, err
-	}
-	check(errencRec)
-
-	// get transID
-	// transIDRec := utils.StringWithCharset(12)
-
-	// save on disk
-
-	err = saveBlock(data.Reciever, recieverBlock)
-	check(err)
-	data.RecieverBlockID = recieverBlock.ID
-	data.SenderBlockID = senderBlock.ID
-	data.RecieverLastBlockAmount = recieverBlock.Amount
-	data.SenderLastBlockAmount = senderBlock.Amount
-	return data, err
 }
 
 // GetBalance ...

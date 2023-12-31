@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net"
+	"strconv"
 
 	"kura_coin/blockchain"
 	"kura_coin/models"
@@ -80,14 +81,14 @@ func GetBalance(message string, conn net.Conn) {
 
 	// get wallet chain
 	//chain :=blockchain.GetChain(request.WalletName)
-	var chain []blockchain.Block
+
 	// _, err = blockchain.GetData(request.WalletName, "/chain.bin", chain)
 	// if err != nil {
 	// 	utils.Logger.Error().Str("err", err.Error()).Msg("error getting chain")
 	// }
 
 	store := blockchain.NewKvStore[[]blockchain.Block](request.WalletName, "/chain.bin")
-	data, _ := store.GetData(chain)
+	data, _ := store.GetData()
 	utils.Logger.Debug().Any("data", data).Msg("data")
 	//print(data)
 	// if chain == nil || len(chain) <1 {
@@ -99,14 +100,50 @@ func GetBalance(message string, conn net.Conn) {
 	// }
 
 	// // voting happens here
-	var balance int64
-	for _, block := range chain {
-		balance = balance + int64(block.Amount)
+	var balance float64
+	for _, block := range data {
+		balance = balance + block.Amount
 	}
 
 	response := models.GetBalanceResp{}
 	response.Balance = balance
 	response.Code = 1
 
+	utils.RespondTCP(response, conn)
+}
+
+func TransferHandler(message string, conn net.Conn) {
+	request := models.TransferReq{}
+	err := json.Unmarshal([]byte(message), &request)
+	if err != nil {
+		utils.Logger.Error().Str("err", err.Error()).Msg("error decoding req")
+		conn.Write([]byte(err.Error()))
+		return
+		//json: Unmarshal(non-pointer main.Request)
+	}
+
+	trxData := models.TrxData{}
+	amounti, err := strconv.ParseFloat(request.Amount[:len(request.Amount)-1], 64)
+	if err != nil {
+		utils.Logger.Error().Str("err", err.Error()).Msg("error converting amount to int64")
+		return	
+	}
+	trxData.Amount = amounti
+	trxData.Sender = request.Sender
+	trxData.Reciever = request.Receiver
+
+	_, err = blockchain.Transfer(trxData)
+
+	errResponse := models.ErrorResponse{}
+	errResponse.Code = 0
+	errResponse.Message = "Error making transfer"
+	if err != nil {
+		utils.RespondTCP(errResponse, conn)
+		return
+	}
+
+	response := models.GeneralResponse{}
+	response.Code = 1
+	response.Message = "Transfer Successfull"
 	utils.RespondTCP(response, conn)
 }

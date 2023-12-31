@@ -4,7 +4,7 @@ type TrxData struct{
 	IsBroadcasted bool
 	SenderBlockID string
 	RecieverBlockID string
-	Amount int
+	Amount float64
 	Sender string
 	Reciever string
 	SPrivateKey string

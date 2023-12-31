@@ -80,6 +80,9 @@ func routeTCPActions(action string, message string, conn net.Conn) {
 	case "GetBalance":
 		utils.Logger.Debug().Msg("getting balance req")
 		handlers.GetBalance(message, conn)
+	case "Transfer":
+		utils.Logger.Debug().Msg("transfer req")
+		handlers.TransferHandler(message, conn)
 	}
 }
 

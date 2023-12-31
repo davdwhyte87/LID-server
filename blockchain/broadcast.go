@@ -50,15 +50,9 @@ func BroadCastTransfer(data models.TransferReq) {
 	servers := GetServers()
 	// n := RandomInt(0, len(servers))
 	requestBody, err := json.Marshal(map[string]string{
-		"SenderPrivateKey":        data.SenderPrivateKey,
-		"SenderAddress":           data.SenderAddress,
-		"RecieverAddress":         data.RecieverAddress,
-		"RecieverPrivateKey":      data.RecieverPrivateKey,
+		
 		"Amount":                  data.Amount,
-		"SenderBlockID":           data.SenderBlockID,
-		"RecieverBlockID":         data.RecieverBlockID,
-		"RecieverLastBlockAmount": data.RecieverLastBlockAmount,
-		"SenderLastBlockAmount":   data.SenderLastBlockAmount,
+		
 	})
 
 	if err != nil {

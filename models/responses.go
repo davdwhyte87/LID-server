@@ -12,5 +12,10 @@ type ErrorResponse struct {
 
 type GetBalanceResp struct {
 	Code    int
-	Balance int64
+	Balance float64
+}
+
+type GeneralResponse struct {
+	Code    int
+	Message string
 }

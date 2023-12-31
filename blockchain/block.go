@@ -17,7 +17,7 @@ import (
 )
 
 type Block struct {
-	Amount         int
+	Amount         float64
 	ID             string
 	Hash           string
 	Sender         string
@@ -269,7 +269,7 @@ func VerifyChain(address string) bool {
 	prevBlock := chain[length-2]
 
 	// calculate a hypothetic hash of the last prock from prev block data
-	stringForHashRec := prevBlock.Hash + strconv.Itoa(lastBlock.Amount) + address
+	stringForHashRec := prevBlock.Hash  + address
 	shaEngine := sha256.New()
 	shaEngine.Write([]byte(stringForHashRec))
 

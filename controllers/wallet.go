@@ -25,14 +25,14 @@ func  CreateWallet(w http.ResponseWriter, r *http.Request) {
 
 	// incase a propagation occurs there will be noned toprocess and propagate again
 	if reqData.Address != "" {
-		if blockchain.WalletExists(reqData.Address) {
-			utils.RespondWithJSON(w, http.StatusCreated, reqData.Address)
-			return
-		}
+		// if blockchain.WalletExists(reqData.Address) {
+		// 	utils.RespondWithJSON(w, http.StatusCreated, reqData.Address)
+		// 	return
+		// }
 	}
 
 	// create wallet
-	walletName, err := blockchain.CreateWallet(reqData.Address, reqData.PrivateKey)
+	walletName,_, err := blockchain.CreateWallet(reqData.Address, reqData.PrivateKey)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, "Error Creating Wallet")
 		return
@@ -69,17 +69,17 @@ func TransferLID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !blockchain.WalletExists(reqData.SenderAddress) {
-		utils.RespondWithError(w, http.StatusCreated, "Sender Wallet does not exist")
-		print("Sender Wallet does not exist")
-		return
-	}
+	// if !blockchain.WalletExists(reqData.SenderAddress) {
+	// 	utils.RespondWithError(w, http.StatusCreated, "Sender Wallet does not exist")
+	// 	print("Sender Wallet does not exist")
+	// 	return
+	// }
 
-	if !blockchain.WalletExists(reqData.RecieverAddress) {
-		utils.RespondWithError(w, http.StatusCreated, "Reciever Wallet does not exist")
-		print("Reciever Wallet does not exist")
-		return
-	}
+	// if !blockchain.WalletExists(reqData.RecieverAddress) {
+	// 	utils.RespondWithError(w, http.StatusCreated, "Reciever Wallet does not exist")
+	// 	print("Reciever Wallet does not exist")
+	// 	return
+	// }
 
 	// check if req is coming from user or server
 	if reqData.SenderBlockID != "" {

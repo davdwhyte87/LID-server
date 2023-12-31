@@ -14,3 +14,9 @@ type CreateWalletRequest struct {
 type GetBalanceReq struct {
 	WalletName string
 }
+type TransferReq struct{
+	Sender string
+	Receiver string 
+	Amount string
+
+}
