@@ -1,6 +1,7 @@
 package main
 
 import (
+	
 	"log"
 	"net"
 	"strings"
@@ -14,9 +15,11 @@ import (
 	// "github.com/gorilla/mux"
 	"kura_coin/blockchain"
 	"kura_coin/handlers"
+	
 
 	//"kura_coin/models"
 	"kura_coin/utils"
+
 	"github.com/joho/godotenv"
 )
 
@@ -52,8 +55,9 @@ func handleClient(conn net.Conn) {
 	// 	//json: Unmarshal(non-pointer main.Request)
 	// }
 
+	utils.Logger.Debug().Str("Message", message).Msg("")
 	datapit := strings.Split(message, "\n")
-
+	utils.Logger.Debug().Any("Split message ", datapit).Msg("")
 	// utils.Logger.Debug().Str("length",string(rune(len(datapit))))
 	// if len(datapit) != 3 {
 	// 	response := models.ErrorResponse{}
@@ -77,12 +81,14 @@ func routeTCPActions(action string, message string, conn net.Conn) {
 	case "CreateWallet":
 		utils.Logger.Debug().Msg("creating wallet req")
 		handlers.CreateWallet(message, conn)
+
 	case "GetBalance":
 		utils.Logger.Debug().Msg("getting balance req")
 		handlers.GetBalance(message, conn)
 	case "Transfer":
 		utils.Logger.Debug().Msg("transfer req")
 		handlers.TransferHandler(message, conn)
+		
 	}
 }
 
@@ -97,6 +103,7 @@ func main() {
 	println(prk2, pk2)
 
 	port := os.Getenv("PORT")
+	utils.Logger.Debug().Str("PORT", port)
 	if port == "" {
 		port = "8080"
 	}

@@ -2,9 +2,9 @@ package utils
 
 import (
 	"encoding/json"
+	
 	"net"
 	"net/http"
-
 	// "kura_coin/models"
 )
 
@@ -46,4 +46,46 @@ func RespondTCP(data interface{}, conn net.Conn){
 	}
 	conn.Write(responseByte)
 	
+}
+
+
+
+func SendTCP(address string, message string) error{
+   
+    servAddr := address
+    tcpAddr, err := net.ResolveTCPAddr("tcp", servAddr)
+    if err != nil {
+		Logger.Error().Str("err", err.Error()).Msg("Error resolving address "+address)
+       return err
+    }
+
+    conn, err := net.DialTCP("tcp", nil, tcpAddr)
+    if err != nil {
+		Logger.Error().Str("err", err.Error()).Msg("Error dailing address"+address)
+		return err
+    }
+
+    _, err = conn.Write([]byte(message))
+    if err != nil {
+		Logger.Error().Str("err", err.Error()).Msg("Error writing to address"+address)
+		return err
+    }
+
+	Logger.Debug().Msg("Sending data to "+servAddr)
+	
+
+	// ignoring response 
+
+    reply := make([]byte, 1024)
+
+    _, err = conn.Read(reply)
+    if err != nil {
+      
+    }
+
+    //println("reply from server=", string(reply))
+
+    conn.Close()
+
+	return nil
 }

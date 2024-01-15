@@ -7,16 +7,17 @@ type Request struct {
 }
 
 type CreateWalletRequest struct {
-	WalletName string
-	PassPhrase string
+	Address       string
+	PassPhrase    string
+	IsBroadcasted bool 
 }
 
 type GetBalanceReq struct {
 	WalletName string
 }
-type TransferReq struct{
-	Sender string
-	Receiver string 
-	Amount string
-
+type TransferReq struct {
+	Sender        string
+	Receiver      string
+	Amount        string
+	IsBroadcasted bool
 }

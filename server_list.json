@@ -1,8 +1,7 @@
 [
-    "http://localhost:100/api/v1/",
-    "http://localhost:200/api/v1/",
-    "http://localhost:300/api/v1/",
-    "http://localhost:400/api/v1/",
-    "http://localhost:500/api/v1/",
-    "http://localhost:600/api/v1/"
+    {
+        "address":"http://localhost:100/api/v1/",
+        "publicKey":"jsnosmisonvsofnvwlvnsklvsknvsfnv" 
+    }
+    
 ]

@@ -16,6 +16,7 @@ func CreateWallet(message string, conn net.Conn) {
 	err := json.Unmarshal([]byte(message), &request)
 	if err != nil {
 		println(err.Error())
+		utils.Logger.Error().Str("err", err.Error()).Msg("error decoding request")
 		conn.Write([]byte(err.Error()))
 		return
 		//json: Unmarshal(non-pointer main.Request)
@@ -30,19 +31,20 @@ func CreateWallet(message string, conn net.Conn) {
 	// 	return
 	// }
 
-	store := blockchain.NewKvStore[[]blockchain.Block](request.WalletName, "")
+	store := blockchain.NewKvStore[[]blockchain.Block](request.Address, "")
 	if store.DbExist() {
 		response := models.ErrorResponse{}
 		response.Code = 3
 		response.Message = "Wallet Exists"
 		utils.RespondTCP(response, conn)
-		return
+		
+	
 	}
 
 	// create new block
 
 	// create wallet
-	_, publicKey, err := blockchain.CreateWallet(request.WalletName, request.PassPhrase)
+	_, publicKey, err := blockchain.CreateWallet(request.Address, request.PassPhrase)
 	if err != nil {
 		utils.Logger.Error().Str("err", err.Error()).Msg("error creating wallet")
 		println(err.Error())
@@ -55,15 +57,11 @@ func CreateWallet(message string, conn net.Conn) {
 
 	utils.RespondTCP(response, conn)
 
-	// turn reponse data to bytes
-	// responseByte, err := json.Marshal(response)
-	// if err != nil {
-	// 	utils.Logger.Error().Str("err",err.Error()).Msg("error encoding response")
-	// 	println(err.Error())
-	// 	conn.Write([]byte(err.Error()))
-	// 	return
-	// }
-	// conn.Write(responseByte)
+	// broadcast 
+	if !request.IsBroadcasted {
+		blockchain.BCreateWallet(request)
+	}
+	
 }
 
 func GetBalance(message string, conn net.Conn) {
@@ -146,4 +144,8 @@ func TransferHandler(message string, conn net.Conn) {
 	response.Code = 1
 	response.Message = "Transfer Successfull"
 	utils.RespondTCP(response, conn)
+	// broadcast trassaction
+	if !request.IsBroadcasted {
+		blockchain.BroadCastTransfer(request)
+	}
 }
