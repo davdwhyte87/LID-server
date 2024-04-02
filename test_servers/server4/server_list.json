@@ -1,15 +1,15 @@
 [
-    {
-        "address":"localhost:200",
-        "publicKey":"jsnosmisonvsofnvwlvnsklvsknvsfnv" 
-    },
-    {
-        "address":"localhost:300",
-        "publicKey":"jsnosmisonvsofnvwlvnsklvsknvsfnv" 
-    },
-    {
-        "address":"localhost:100",
-        "publicKey":"jsnosmisonvsofnvwlvnsklvsknvsfnv" 
-    }
-    
+  {
+    "id": "",
+    "ip_address": "",
+    "public_key": "",
+    "http_address":"http://0.0.0.0:300"
+  }
+  ,
+  {
+    "id": "",
+    "ip_address": "",
+    "public_key": "",
+    "http_address":"http://0.0.0.0:200"
+  }
 ]

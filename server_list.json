@@ -1,7 +1,8 @@
 [
-    {
-        "address":"http://localhost:100/api/v1/",
-        "publicKey":"jsnosmisonvsofnvwlvnsklvsknvsfnv" 
-    }
-    
+  {
+    "id": "",
+    "ip_address": "",
+    "public_key": "",
+    "http_address":"http://127.0.0.1:200"
+  }
 ]
